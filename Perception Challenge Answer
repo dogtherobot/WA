@@ -1,0 +1,47 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import cv2
+from scipy import stats
+
+img = cv2.imread(r"C:\Users\cntur\OneDrive\Desktop\perception.png",1) #Image path
+sample_img = img
+hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+# Define a color range (for example, blue)
+lower_red = np.array([0, 200, 200])
+upper_red = np.array([0, 255, 255])
+
+# Threshold the image to get only blue regions
+mask = cv2.inRange(hsv_image, lower_red, upper_red)
+
+# Find contours in the binary mask
+contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+# Iteration dict for contours
+x_y_dict = {1:{'x':[],'y':[]},2:{'x':[],'y':[]}}
+
+#Contour analysis to have better lines
+for contour in contours:
+    x = contour[:,0,0][0]
+    y = contour[:,0,1][0]
+    if y > 60: #Get rid of the errors
+        if x > 1000: #Seperate the two paths
+            x_y_dict[1]['x'].append(x)  
+            x_y_dict[1]['y'].append(y)
+        else:
+            x_y_dict[2]['x'].append(x)  
+            x_y_dict[2]['y'].append(y)
+    
+# Fit a line to the contour points
+for key in x_y_dict:
+    slope, intercept, r, p, std_err = stats.linregress(x_y_dict[key]['x'], x_y_dict[key]['y'])
+    x_i = min(x_y_dict[key]['x'])
+    print(x_i)
+    x_f = max(x_y_dict[key]['x'])
+    result = cv2.line(sample_img, (int(x_i),int(x_i*slope + intercept)), (int(x_f), int(x_f*slope + intercept)) , (0, 255,255), 5)
+
+# Show the original and result images
+cv2.imshow('Original Image', img)
+cv2.imshow('Pathed Image', result)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
